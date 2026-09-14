@@ -7,8 +7,8 @@ export function Diferenciais() {
       <div className="grid gap-y-20 md:grid-cols-2 md:gap-x-16 md:gap-y-28">
         {siteConfig.diferenciais.map((d, i) => (
           <Reveal key={d.titulo} delay={(i % 2) * 0.1}>
-            <h2 className="display text-4xl leading-[1.05] text-gold md:text-6xl">{d.titulo}</h2>
-            <p className="muted mt-4 text-lg md:text-xl">{d.descricao}</p>
+            <h2 className="display text-4xl leading-[1.05] md:text-6xl">{d.titulo}</h2>
+            <p className="mt-4 text-lg font-light text-gold md:text-xl">{d.descricao}</p>
           </Reveal>
         ))}
       </div>
