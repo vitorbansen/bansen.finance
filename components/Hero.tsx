@@ -19,7 +19,7 @@ export function Hero() {
       <Reveal immediate delay={0.3} className="mt-12 flex flex-col items-center gap-4 sm:flex-row sm:gap-8">
         <a
           href="#catalogo"
-          className="rounded-full bg-ash px-7 py-3 text-sm font-medium text-black transition hover:bg-white"
+          className="rounded-full bg-gold px-7 py-3 text-sm font-semibold text-black transition hover:bg-gold-light"
         >
           Ver catálogo
         </a>
