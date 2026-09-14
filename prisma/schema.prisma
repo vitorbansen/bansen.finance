@@ -1,0 +1,42 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Estado {
+  NOVO
+  SEMINOVO
+}
+
+model Produto {
+  id            String   @id @default(cuid())
+  modelo        String
+  armazenamento String
+  cor           String
+  estado        Estado   @default(NOVO)
+  garantia      String
+  preco         Decimal  @db.Decimal(12, 2)
+  precoPix      Decimal? @db.Decimal(12, 2)
+  bateria       Int?
+  imagem        String?
+  destaque      Boolean  @default(false)
+  disponivel    Boolean  @default(true)
+  ordem         Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([estado, disponivel])
+}
+
+model Admin {
+  id        String   @id @default(cuid())
+  usuario   String   @unique
+  nome      String
+  senha     String
+  createdAt DateTime @default(now())
+}
