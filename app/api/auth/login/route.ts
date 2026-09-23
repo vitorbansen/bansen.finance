@@ -10,13 +10,13 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
   }
-  const { usuario, senha } = parsed.data;
-  const admin = await prisma.admin.findUnique({ where: { usuario: usuario.toLowerCase() } });
-  const senhaCorreta = admin ? await bcrypt.compare(senha, admin.senha) : false;
-  if (!admin || !senhaCorreta) {
-    await new Promise((r) => setTimeout(r, 1500));
-    return NextResponse.json({ error: "Usuário ou senha incorretos" }, { status: 401 });
+  const { email, senha } = parsed.data;
+  const usuario = await prisma.usuario.findUnique({ where: { email } });
+  const senhaCorreta = usuario ? await bcrypt.compare(senha, usuario.senha) : false;
+  if (!usuario || !senhaCorreta) {
+    await new Promise((r) => setTimeout(r, 1000));
+    return NextResponse.json({ error: "E-mail ou senha incorretos" }, { status: 401 });
   }
-  await createSession({ id: admin.id, usuario: admin.usuario, nome: admin.nome });
+  await createSession({ id: usuario.id, nome: usuario.nome, email: usuario.email });
   return NextResponse.json({ ok: true });
 }

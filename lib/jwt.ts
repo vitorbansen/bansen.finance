@@ -1,6 +1,6 @@
 import { SignJWT, jwtVerify, type JWTPayload } from "jose";
 
-export const COOKIE_KEY = "nk_admin_token";
+export const COOKIE_KEY = "fin_token";
 
 export function getJwtSecret() {
   const secret = process.env.JWT_SECRET;
@@ -14,7 +14,7 @@ export async function signToken(payload: Record<string, unknown>) {
   return new SignJWT(payload)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("7d")
+    .setExpirationTime("30d")
     .sign(getJwtSecret());
 }
 

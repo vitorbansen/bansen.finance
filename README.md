@@ -1,59 +1,70 @@
-# NK iPhones
+# Controle Financeiro
 
-Catálogo de iPhones (Next.js 14 App Router + TypeScript + Tailwind + Framer Motion) com painel
-admin para cadastrar aparelhos. Produtos ficam no Postgres (Neon) via Prisma; fotos no Cloudinary.
-Cada card leva o cliente ao WhatsApp com mensagem pré-preenchida.
+App pessoal de finanças, **mobile-first para iPhone** (Safari / Tela de Início como PWA).
+Mostra o que entrou e saiu, recorrências (salário, aluguel, assinaturas), faturas do cartão com
+parcelamento, dinheiro guardado em caixinhas e — principalmente — **quanto sobra este mês e quanto
+vai sobrar no próximo**.
+
+Stack: Next.js 14 (App Router) + TypeScript + Tailwind + Prisma/Postgres (Neon) + zod + jose/bcrypt.
 
 ## Rodar
 
 ```bash
 npm install
-npm run prisma:migrate   # cria/atualiza as tabelas (só na 1ª vez ou quando o schema mudar)
-npm run setup:admin      # cria o usuário do painel
+npm run prisma:migrate   # cria/atualiza as tabelas
+npm run db:seed          # opcional: usuário demo@exemplo.com / demo12345 com dados de exemplo
 npm run dev              # http://localhost:3000
 ```
 
-Painel: `http://localhost:3000/admin` (não há link no site — acesse pela URL).
+Crie sua conta em `/cadastro` ou pelo terminal: `npm run setup:usuario -- email senha "Nome"`
+(rodar de novo com o mesmo e-mail troca a senha).
+
+No iPhone: abra no Safari → Compartilhar → **Adicionar à Tela de Início**.
+
+## Scripts
+
+| Script              | O quê                                   |
+| ------------------- | --------------------------------------- |
+| `npm run lint`      | ESLint (next/core-web-vitals)           |
+| `npm run typecheck` | `tsc --noEmit`                          |
+| `npm test`          | testes do domínio (`node:test` via tsx) |
+| `npm run build`     | `prisma generate` + `next build`        |
 
 ## Variáveis de ambiente (`.env`)
 
-| Variável                  | O quê                                                             |
-| ------------------------- | ----------------------------------------------------------------- |
-| `DATABASE_URL`            | Neon (host `-pooler`) com `&schema=nkiphones`                     |
-| `DIRECT_URL`              | Neon sem `-pooler` (usado só pelas migrações)                     |
-| `JWT_SECRET`              | segredo do login (32+ caracteres aleatórios)                      |
-| `CLOUDINARY_*`            | credenciais do Cloudinary (fotos vão para a pasta `nk-iphones`)   |
+| Variável       | O quê                                                     |
+| -------------- | --------------------------------------------------------- |
+| `DATABASE_URL` | Neon (host `-pooler`) com `&schema=nkiphones`             |
+| `DIRECT_URL`   | Neon sem `-pooler` (usado só pelas migrações)             |
+| `JWT_SECRET`   | segredo da sessão (32+ caracteres aleatórios)             |
+| `SEED_SENHA`   | opcional, senha do usuário demo do seed                   |
 
-O banco é o mesmo do projeto de imobiliárias, mas as tabelas ficam isoladas no schema `nkiphones`.
+## Regras importantes
 
-## Onde editar
-
-| O quê                                        | Onde                                   |
-| -------------------------------------------- | -------------------------------------- |
-| Produtos (modelo, cor, preço, foto…)         | `/admin` no navegador                  |
-| WhatsApp, cidade, redes, textos do hero      | `lib/config.ts`                        |
-| Mensagem do WhatsApp por produto             | `lib/utils.ts` → `mensagemProduto()`   |
-| Cores (preto/dourado)                        | `tailwind.config.ts`                   |
-| Dados iniciais de exemplo (`npm run db:seed`)| `lib/products.ts`                      |
-
-## Deploy (Vercel)
-
-1. Importe o repositório na Vercel e cole as variáveis do `.env` em *Environment Variables*.
-2. Build command padrão (`npm run build`) já roda `prisma generate`.
-3. Rode `npx prisma migrate deploy` uma vez apontando para o banco de produção.
-4. Crie o usuário do painel: `npm run setup:admin -- usuario senha "Nome"` (ou interativo). Rodar de novo com o mesmo usuário troca a senha.
+- Dinheiro é sempre **inteiro em centavos** (banco e cálculos).
+- Datas de competência são `date` (sem hora) e "hoje" é calculado em `America/Sao_Paulo`.
+- Compra no cartão no **dia do fechamento ou depois** cai na fatura seguinte.
+- Recorrências viram lançamentos **pendentes** ao abrir o mês (idempotente: nunca duplica).
+- Todos os cálculos ficam em `lib/finance/` (domínio puro, testado).
 
 ## Estrutura
 
 ```
 app/
-  (site)/            # site público: Hero, Diferenciais, Catálogo, CTA
-  admin/login        # login
-  admin/(protected)/ # lista, novo, editar (exige sessão)
-  api/               # auth, produtos (CRUD), upload (Cloudinary)
-components/          # UI do site + components/admin/FormProduto
-lib/                 # config, prisma, auth/jwt, cloudinary, validators, produtos-db
+  (auth)/            # login, cadastro
+  (app)/             # Início, Lançamentos, Cartões, Guardado, Mais (tab bar)
+  api/               # rotas REST (validação zod, sempre filtradas pelo usuário)
+  manifest.ts        # PWA
+components/          # ui/ (bottom sheet, input de valor, seletor de mês…) e telas
+lib/
+  finance/           # domínio puro: dinheiro, datas, fatura, parcelas, recorrência, resumo + testes
+  server/            # services com Prisma
+  auth.ts, jwt.ts    # sessão
 prisma/              # schema, migrations, seed
-scripts/setup-admin.ts
-middleware.ts        # protege /admin e as APIs de escrita
 ```
+
+## Deploy (Vercel)
+
+1. Variáveis do `.env` em *Environment Variables*.
+2. Build padrão (`npm run build`) já roda `prisma generate`.
+3. `npx prisma migrate deploy` apontando para o banco de produção.

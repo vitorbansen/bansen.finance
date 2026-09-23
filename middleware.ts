@@ -1,39 +1,30 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { verifyToken, COOKIE_KEY } from "@/lib/jwt";
 
+const PAGINAS_PUBLICAS = ["/login", "/cadastro"];
+
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const isLoginPage = pathname === "/admin/login";
-  const isAdminRoute = pathname.startsWith("/admin") && !isLoginPage;
-  const isProtectedApi =
-    (pathname.startsWith("/api/produtos") && req.method !== "GET") || pathname.startsWith("/api/upload");
-
   const token = req.cookies.get(COOKIE_KEY)?.value;
   const payload = await verifyToken(token);
+  const isPaginaPublica = PAGINAS_PUBLICAS.includes(pathname);
 
-  if (isLoginPage) {
-    if (payload) {
-      const url = req.nextUrl.clone();
-      url.pathname = "/admin";
-      return NextResponse.redirect(url);
-    }
+  if (isPaginaPublica) {
+    if (payload) return NextResponse.redirect(new URL("/", req.url));
     return NextResponse.next();
   }
 
-  if (!isAdminRoute && !isProtectedApi) return NextResponse.next();
+  if (payload) return NextResponse.next();
 
-  if (!payload) {
-    if (isAdminRoute) {
-      const url = req.nextUrl.clone();
-      url.pathname = "/admin/login";
-      return NextResponse.redirect(url);
-    }
+  if (pathname.startsWith("/api/")) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
-
-  return NextResponse.next();
+  return NextResponse.redirect(new URL("/login", req.url));
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/produtos/:path*", "/api/upload"],
+  // Tudo exige sessão, exceto auth, assets do Next e arquivos do PWA.
+  matcher: [
+    "/((?!api/auth|_next/static|_next/image|manifest.webmanifest|icon|apple-icon|icons|splash|favicon.ico).*)",
+  ],
 };

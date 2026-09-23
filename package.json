@@ -1,5 +1,5 @@
 {
-  "name": "nk-iphones",
+  "name": "controle-financeiro",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -7,12 +7,14 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test lib/finance/__tests__/*.test.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
-    "setup:admin": "tsx scripts/setup-admin.ts"
+    "setup:usuario": "tsx scripts/setup-usuario.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -20,7 +22,6 @@
   "dependencies": {
     "@prisma/client": "^5.22.0",
     "bcryptjs": "^2.4.3",
-    "cloudinary": "^2.10.0",
     "clsx": "^2.1.1",
     "framer-motion": "^11.18.2",
     "jose": "^5.9.6",
