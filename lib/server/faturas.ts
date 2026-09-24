@@ -2,6 +2,7 @@ import type { Cartao, Prisma } from "@prisma/client";
 import { fromDate, primeiroDia, toDate, type DataISO } from "@/lib/finance/dates";
 import { faturaDaCompra, type PeriodoFatura } from "@/lib/finance/fatura";
 import { descricaoParcela, gerarParcelas } from "@/lib/finance/parcelamento";
+import { conflito, invalido } from "./erros";
 
 type Db = Prisma.TransactionClient;
 
@@ -17,6 +18,23 @@ export async function garantirFatura(db: Db, cartaoId: string, periodo: PeriodoF
       dataVencimento: toDate(periodo.vencimento),
     },
   });
+}
+
+/** Várias faturas de uma vez (poucas idas ao banco). Retorna mês → id. */
+export async function garantirFaturas(db: Db, cartaoId: string, periodos: PeriodoFatura[]) {
+  await db.fatura.createMany({
+    data: periodos.map((p) => ({
+      cartaoId,
+      mes: toDate(primeiroDia(p.mes)),
+      dataFechamento: toDate(p.fechamento),
+      dataVencimento: toDate(p.vencimento),
+    })),
+    skipDuplicates: true,
+  });
+  const faturas = await db.fatura.findMany({
+    where: { cartaoId, mes: { in: periodos.map((p) => toDate(primeiroDia(p.mes))) } },
+  });
+  return new Map(faturas.map((f) => [fromDate(f.mes).slice(0, 7), f.id]));
 }
 
 /** Id da fatura em que cai uma compra feita em `data`. */
@@ -70,30 +88,25 @@ export async function criarCompraCartao(db: Db, c: NovaCompraCartao) {
     },
   });
   const parcelas = gerarParcelas({ valorTotal: c.valor, nParcelas: n, dataCompra: c.data }, c.cartao);
-  const criados = [];
-  for (const p of parcelas) {
-    const fatura = await garantirFatura(db, c.cartao.id, p.fatura);
-    criados.push(
-      await db.lancamento.create({
-        data: {
-          userId: c.userId,
-          tipo: "SAIDA",
-          descricao: descricaoParcela(c.descricao, p.numero, p.total),
-          valor: p.valor,
-          data: toDate(p.data),
-          status: "PAGO",
-          observacao: c.observacao,
-          categoriaId: c.categoriaId,
-          cartaoId: c.cartao.id,
-          faturaId: fatura.id,
-          compraParceladaId: compra.id,
-          parcelaNumero: p.numero,
-          parcelaTotal: p.total,
-        },
-      }),
-    );
-  }
-  return criados;
+  const faturas = await garantirFaturas(db, c.cartao.id, parcelas.map((p) => p.fatura));
+  const criados = await db.lancamento.createManyAndReturn({
+    data: parcelas.map((p) => ({
+      userId: c.userId,
+      tipo: "SAIDA" as const,
+      descricao: descricaoParcela(c.descricao, p.numero, p.total),
+      valor: p.valor,
+      data: toDate(p.data),
+      status: "PAGO" as const,
+      observacao: c.observacao,
+      categoriaId: c.categoriaId,
+      cartaoId: c.cartao.id,
+      faturaId: faturas.get(p.fatura.mes)!,
+      compraParceladaId: compra.id,
+      parcelaNumero: p.numero,
+      parcelaTotal: p.total,
+    })),
+  });
+  return criados.sort((a, b) => a.parcelaNumero! - b.parcelaNumero!);
 }
 
 export async function totalFatura(db: Db, faturaId: string) {
@@ -101,20 +114,15 @@ export async function totalFatura(db: Db, faturaId: string) {
   return r._sum.valor ?? 0;
 }
 
-export class FaturaJaPaga extends Error {
-  constructor() {
-    super("Esta fatura já foi paga");
-  }
-}
-
-/** Pagar fatura = saída na conta vinculada ao cartão + marca a fatura como paga. */
-export async function pagarFatura(db: Db, userId: string, faturaId: string, data: DataISO, valor?: number) {
+/** Pagar fatura = saída na conta vinculada ao cartão (ou em `contaId`) + marca a fatura como paga. */
+export async function pagarFatura(db: Db, userId: string, faturaId: string, data: DataISO, contaId?: string | null) {
   const fatura = await db.fatura.findFirstOrThrow({
     where: { id: faturaId, cartao: { userId } },
     include: { cartao: true },
   });
-  if (fatura.pagaEm) throw new FaturaJaPaga();
-  const total = valor ?? (await totalFatura(db, faturaId));
+  if (fatura.pagaEm) throw conflito("Esta fatura já foi paga");
+  const total = await totalFatura(db, faturaId);
+  if (total <= 0) throw invalido("Fatura sem itens para pagar");
   const pagamento = await db.lancamento.create({
     data: {
       userId,
@@ -123,7 +131,7 @@ export async function pagarFatura(db: Db, userId: string, faturaId: string, data
       valor: total,
       data: toDate(data),
       status: "PAGO",
-      contaId: fatura.cartao.contaPagamentoId,
+      contaId: contaId ?? fatura.cartao.contaPagamentoId,
     },
   });
   return db.fatura.update({
