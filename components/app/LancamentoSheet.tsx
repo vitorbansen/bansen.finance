@@ -300,7 +300,7 @@ export function LancamentoSheet({
               grupos={[
                 { rotulo: "Contas", opcoes: contas.map((c) => ({ valor: `conta:${c.id}`, rotulo: c.nome })) },
                 ...(f.tipo === "SAIDA"
-                  ? [{ rotulo: "Cartões de crédito", opcoes: cartoes.map((c) => ({ valor: `cartao:${c.id}`, rotulo: `💳 ${c.nome}` })) }]
+                  ? [{ rotulo: "Cartões de crédito", opcoes: cartoes.map((c) => ({ valor: `cartao:${c.id}`, rotulo: `Cartão ${c.nome}` })) }]
                   : []),
               ]}
             />
@@ -341,7 +341,7 @@ export function LancamentoSheet({
                 <div className="flex items-center overflow-hidden rounded-lg bg-fill/[0.12]">
                   <button
                     type="button"
-                    className="h-9 w-11 text-[20px] text-label disabled:opacity-30"
+                    className="h-11 w-11 text-[20px] text-label disabled:opacity-30"
                     disabled={f.parcelas <= 1}
                     onClick={() => set("parcelas", f.parcelas - 1)}
                     aria-label="Menos parcelas"
@@ -353,7 +353,7 @@ export function LancamentoSheet({
                   </span>
                   <button
                     type="button"
-                    className="h-9 w-11 text-[20px] text-label disabled:opacity-30"
+                    className="h-11 w-11 text-[20px] text-label disabled:opacity-30"
                     disabled={f.parcelas >= 48}
                     onClick={() => set("parcelas", f.parcelas + 1)}
                     aria-label="Mais parcelas"

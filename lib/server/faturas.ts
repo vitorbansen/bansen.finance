@@ -21,7 +21,8 @@ export async function garantirFatura(db: Db, cartaoId: string, periodo: PeriodoF
 }
 
 /** Várias faturas de uma vez (poucas idas ao banco). Retorna mês → id. */
-export async function garantirFaturas(db: Db, cartaoId: string, periodos: PeriodoFatura[]) {
+export async function garantirFaturas(db: Db, cartaoId: string, todos: PeriodoFatura[]) {
+  const periodos = [...new Map(todos.map((p) => [p.mes, p])).values()];
   await db.fatura.createMany({
     data: periodos.map((p) => ({
       cartaoId,

@@ -69,7 +69,7 @@ export function Caixinhas({ caixinhas }: { caixinhas: Caixinha[] }) {
                       <Progresso valor={progresso} cor={c.cor} rotulo={`Progresso de ${c.nome}`} />
                       <p className="mt-1.5 flex justify-between text-[13px] text-label-2/60">
                         <span>{Math.min(100, Math.round(progresso * 100))}%</span>
-                        <span>{falta > 0 ? `Faltam ${formatBRL(falta)}` : "Meta atingida 🎉"}</span>
+                        <span>{falta > 0 ? `Faltam ${formatBRL(falta)}` : "Meta atingida"}</span>
                       </p>
                     </div>
                   )}
@@ -77,16 +77,16 @@ export function Caixinhas({ caixinhas }: { caixinhas: Caixinha[] }) {
                     <p className={cn("mt-2 text-[13px]", faltaMes > 0 ? "text-laranja" : "text-verde")}>
                       {faltaMes > 0
                         ? `Guardar ${formatBRL(faltaMes)} este mês (planejado ${formatBRL(c.planejadoMensal)})`
-                        : `Planejado do mês guardado ✓`}
+                        : `Planejado do mês já guardado`}
                     </p>
                   ) : null}
                   {c.valorAlvo && c.prazo && falta > 0 && <Ritmo falta={falta} prazo={c.prazo} />}
                 </div>
                 <div className="mt-3 flex gap-2">
-                  <button type="button" className="btn-secundario min-h-[40px] flex-1 text-[15px]" onClick={() => setMovendo(c)}>
+                  <button type="button" className="btn-secundario flex-1 text-[15px]" onClick={() => setMovendo(c)}>
                     Depositar / Resgatar
                   </button>
-                  <button type="button" className="btn-secundario min-h-[40px] px-4 text-[15px]" onClick={() => setEditando(c)}>
+                  <button type="button" className="btn-secundario px-4 text-[15px]" onClick={() => setEditando(c)}>
                     Editar
                   </button>
                 </div>

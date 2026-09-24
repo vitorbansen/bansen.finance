@@ -76,7 +76,7 @@ export function ListaCartoes({ itens }: { itens: ItemCartao[] }) {
                       {formatBRL(f.total)} · vence {formatarDiaMes(f.vencimento)}
                     </p>
                   </div>
-                  <button type="button" className="btn-primario min-h-[36px] px-3.5 text-[15px]" onClick={() => setPagando({ cartao, fatura: f })}>
+                  <button type="button" className="btn-primario px-3.5 text-[15px]" onClick={() => setPagando({ cartao, fatura: f })}>
                     Pagar
                   </button>
                 </div>

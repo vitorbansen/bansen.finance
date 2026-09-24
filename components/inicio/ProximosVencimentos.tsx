@@ -61,13 +61,13 @@ export function ProximosVencimentos({ itens }: { itens: Vencimento[] }) {
             {formatBRL(v.valor)}
           </span>
           {v.tipo === "FATURA" ? (
-            <Link href="/cartoes" className="btn-secundario min-h-[36px] px-3 text-[15px]">
+            <Link href="/cartoes" className="btn-secundario px-3 text-[15px]">
               Ver
             </Link>
           ) : (
             <button
               type="button"
-              className="btn-secundario min-h-[36px] px-3 text-[15px]"
+              className="btn-secundario px-3 text-[15px]"
               disabled={ocupado === v.id}
               onClick={() => pagar(v)}
             >

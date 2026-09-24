@@ -182,7 +182,7 @@ function ContaSheet({ alvo, aoFechar }: { alvo: ContaDTO | "nova" | null; aoFech
               role="switch"
               aria-checked={negativo}
               onClick={() => setNegativo(!negativo)}
-              className={cn("min-h-[36px] rounded-lg px-3 text-[15px]", negativo ? "bg-vermelho/15 text-vermelho" : "bg-fill/[0.12] text-label-2/60")}
+              className={cn("min-h-[44px] rounded-lg px-3 text-[15px]", negativo ? "bg-vermelho/15 text-vermelho" : "bg-fill/[0.12] text-label-2/60")}
             >
               {negativo ? "Sim (cheque especial)" : "Não"}
             </button>

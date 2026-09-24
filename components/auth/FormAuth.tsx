@@ -3,7 +3,7 @@
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Wallet } from "lucide-react";
+import { Eye, EyeOff, Wallet } from "lucide-react";
 import { api } from "@/lib/cliente";
 
 /** Login e cadastro compartilham o mesmo layout. */
@@ -12,6 +12,7 @@ export function FormAuth({ modo }: { modo: "login" | "cadastro" }) {
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  const [verSenha, setVerSenha] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
   const cadastro = modo === "cadastro";
@@ -21,7 +22,11 @@ export function FormAuth({ modo }: { modo: "login" | "cadastro" }) {
     setEnviando(true);
     setErro(null);
     try {
-      await api("POST", cadastro ? "/api/auth/cadastro" : "/api/auth/login", cadastro ? { nome, email, senha } : { email, senha });
+      await api(
+        "POST",
+        cadastro ? "/api/auth/cadastro" : "/api/auth/login",
+        cadastro ? { nome, email, senha } : { email, senha },
+      );
       router.replace("/");
       router.refresh();
     } catch (e) {
@@ -69,17 +74,28 @@ export function FormAuth({ modo }: { modo: "login" | "cadastro" }) {
             onChange={(e) => setEmail(e.target.value)}
             aria-label="E-mail"
           />
-          <input
-            className="campo px-4"
-            type="password"
-            placeholder={cadastro ? "Senha (mín. 8 caracteres)" : "Senha"}
-            autoComplete={cadastro ? "new-password" : "current-password"}
-            required
-            minLength={cadastro ? 8 : undefined}
-            value={senha}
-            onChange={(e) => setSenha(e.target.value)}
-            aria-label="Senha"
-          />
+          <div className="flex items-center">
+            <input
+              className="campo px-4"
+              type={verSenha ? "text" : "password"}
+              placeholder={cadastro ? "Senha (mín. 8 caracteres)" : "Senha"}
+              autoComplete={cadastro ? "new-password" : "current-password"}
+              required
+              minLength={cadastro ? 8 : undefined}
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              aria-label="Senha"
+            />
+            <button
+              type="button"
+              onClick={() => setVerSenha((v) => !v)}
+              className="flex h-11 w-12 shrink-0 items-center justify-center text-label-2/60"
+              aria-label={verSenha ? "Ocultar senha" : "Mostrar senha"}
+              aria-pressed={verSenha}
+            >
+              {verSenha ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+          </div>
         </div>
 
         {erro && (

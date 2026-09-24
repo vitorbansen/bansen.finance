@@ -43,7 +43,7 @@ export function Filtros() {
       <div className="flex items-center gap-2 px-4 pb-2">
         <form
           role="search"
-          className="flex min-h-[36px] flex-1 items-center gap-1.5 rounded-[10px] bg-fill/[0.12] px-2.5"
+          className="flex min-h-[44px] flex-1 items-center gap-1.5 rounded-[10px] bg-fill/[0.12] px-2.5"
           onSubmit={(e) => {
             e.preventDefault();
             aplicar({ q: busca.trim() });
@@ -65,7 +65,7 @@ export function Filtros() {
             <button
               type="button"
               aria-label="Limpar busca"
-              className="flex h-9 w-9 items-center justify-center text-label-2/60"
+              className="-mr-2 flex h-11 w-11 items-center justify-center text-label-2/60"
               onClick={() => {
                 setBusca("");
                 aplicar({ q: "" });

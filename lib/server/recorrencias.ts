@@ -36,10 +36,9 @@ const MAX_MESES_GERACAO = 24;
  */
 export async function garantirMes(db: Db, userId: string, mes: MesISO) {
   const atual = mesAtualSP();
-  let m = mes < atual ? mes : atual;
-  for (let i = 0; m <= mes && i < MAX_MESES_GERACAO; i++, m = addMesesMes(m, 1)) {
-    await garantirOcorrencias(db, userId, m);
-  }
+  if (mes <= atual) return garantirOcorrencias(db, userId, mes);
+  const limite = addMesesMes(atual, MAX_MESES_GERACAO);
+  return garantirOcorrencias(db, userId, atual, undefined, mes < limite ? mes : limite);
 }
 
 export async function listarRecorrencias(userId: string) {
@@ -183,8 +182,9 @@ export async function alterarRecorrencia(
     });
   }
 
-  for (const m of meses) await garantirOcorrencias(tx, userId, m, vigente.id);
-  await garantirOcorrencias(tx, userId, mesAtualSP(), vigente.id);
+  // Regenera de uma vez do menor ao maior mês afetado (inclui o mês atual).
+  const afetados = [...meses, mesAtualSP()].sort();
+  await garantirOcorrencias(tx, userId, afetados[0], vigente.id, afetados[afetados.length - 1]);
   return vigente;
 }
 

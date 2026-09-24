@@ -246,7 +246,7 @@ function RecorrenciaSheet({ alvo, aoFechar }: { alvo: RecorrenciaDTO | "nova" | 
               grupos={[
                 { rotulo: "Contas", opcoes: cadastros.contas.filter((c) => !c.arquivada).map((c) => ({ valor: `conta:${c.id}`, rotulo: c.nome })) },
                 ...(f.tipo === "SAIDA"
-                  ? [{ rotulo: "Cartões", opcoes: cadastros.cartoes.filter((c) => !c.arquivado).map((c) => ({ valor: `cartao:${c.id}`, rotulo: `💳 ${c.nome}` })) }]
+                  ? [{ rotulo: "Cartões", opcoes: cadastros.cartoes.filter((c) => !c.arquivado).map((c) => ({ valor: `cartao:${c.id}`, rotulo: `Cartão ${c.nome}` })) }]
                   : []),
               ]}
             />

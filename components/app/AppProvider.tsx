@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import { ActionSheet, type OpcaoAcao } from "@/components/ui/ActionSheet";
 import { api } from "@/lib/cliente";
 import type { Cadastros, LancamentoDTO } from "@/lib/types";
@@ -49,7 +49,13 @@ export function AppProvider({ cadastros, children }: { cadastros: Cadastros; chi
     async (l: LancamentoDTO) => {
       try {
         const novo = await api<LancamentoDTO>("POST", `/api/lancamentos/${l.id}/pagar`, {});
-        avisar(novo.status === "PAGO" ? (novo.tipo === "ENTRADA" ? "Marcado como recebido" : "Marcado como pago") : "Marcado como pendente");
+        avisar(
+          novo.status === "PAGO"
+            ? novo.tipo === "ENTRADA"
+              ? "Marcado como recebido"
+              : "Marcado como pago"
+            : "Marcado como pendente",
+        );
         atualizar();
       } catch (e) {
         avisar((e as Error).message, true);
@@ -85,7 +91,11 @@ export function AppProvider({ cadastros, children }: { cadastros: Cadastros; chi
           mensagem: l.descricao,
           opcoes: [
             { rotulo: "Só esta parcela", destrutiva: true, aoTocar: () => excluir("esta") },
-            { rotulo: `Compra inteira (${l.parcelaTotal} parcelas)`, destrutiva: true, aoTocar: () => excluir("todas") },
+            {
+              rotulo: `Compra inteira (${l.parcelaTotal} parcelas)`,
+              destrutiva: true,
+              aoTocar: () => excluir("todas"),
+            },
           ],
         });
       } else {
@@ -114,37 +124,42 @@ export function AppProvider({ cadastros, children }: { cadastros: Cadastros; chi
 
   return (
     <AppCtx.Provider value={valor}>
-      {children}
-      <LancamentoSheet
-        aberto={sheet.aberto}
-        lancamento={sheet.lancamento}
-        aoFechar={() => setSheet({ aberto: false })}
-      />
-      <ActionSheet
-        aberto={!!pergunta}
-        titulo={pergunta?.titulo}
-        mensagem={pergunta?.mensagem}
-        opcoes={pergunta?.opcoes ?? []}
-        aoFechar={() => setPergunta(null)}
-      />
-      <div className="pointer-events-none fixed inset-x-0 top-[calc(env(safe-area-inset-top)+8px)] z-[70] flex justify-center px-4" aria-live="polite">
-        <AnimatePresence>
-          {aviso && (
-            <motion.div
-              key={aviso.id}
-              initial={{ y: -20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: -20, opacity: 0 }}
-              className={`rounded-full px-4 py-2.5 text-[15px] font-medium shadow-lg backdrop-blur-xl ${
-                aviso.erro ? "bg-vermelho text-white" : "bg-card/95 text-label"
-              }`}
-              role={aviso.erro ? "alert" : "status"}
-            >
-              {aviso.mensagem}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+      <MotionConfig reducedMotion="user">
+        {children}
+        <LancamentoSheet
+          aberto={sheet.aberto}
+          lancamento={sheet.lancamento}
+          aoFechar={() => setSheet({ aberto: false })}
+        />
+        <ActionSheet
+          aberto={!!pergunta}
+          titulo={pergunta?.titulo}
+          mensagem={pergunta?.mensagem}
+          opcoes={pergunta?.opcoes ?? []}
+          aoFechar={() => setPergunta(null)}
+        />
+        <div
+          className="pointer-events-none fixed inset-x-0 top-[calc(env(safe-area-inset-top)+8px)] z-[70] flex justify-center px-4"
+          aria-live="polite"
+        >
+          <AnimatePresence>
+            {aviso && (
+              <motion.div
+                key={aviso.id}
+                initial={{ y: -20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: -20, opacity: 0 }}
+                className={`rounded-full px-4 py-2.5 text-[15px] font-medium shadow-lg backdrop-blur-xl ${
+                  aviso.erro ? "bg-vermelho text-white" : "bg-card/95 text-label"
+                }`}
+                role={aviso.erro ? "alert" : "status"}
+              >
+                {aviso.mensagem}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </MotionConfig>
     </AppCtx.Provider>
   );
 }

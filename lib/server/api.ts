@@ -23,7 +23,14 @@ export function rota<P = Record<string, never>>(fn: (ctx: Contexto<P>) => Promis
   };
 }
 
+/** Erros de controle do Next (renderização dinâmica, redirect, notFound) precisam subir intactos. */
+function ehErroInternoDoNext(e: unknown) {
+  const digest = (e as { digest?: unknown } | null)?.digest;
+  return typeof digest === "string" && (digest === "DYNAMIC_SERVER_USAGE" || digest.startsWith("NEXT_"));
+}
+
 export function respostaDeErro(e: unknown) {
+  if (ehErroInternoDoNext(e)) throw e;
   if (e instanceof NaoAutorizado) return NextResponse.json({ error: e.message }, { status: 401 });
   if (e instanceof HttpError) return NextResponse.json({ error: e.message }, { status: e.status });
   if (e instanceof ZodError) {

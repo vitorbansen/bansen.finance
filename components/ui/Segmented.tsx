@@ -30,7 +30,7 @@ export function Segmented<T extends string>({
             aria-checked={ativo}
             onClick={() => aoMudar(o.valor)}
             className={cn(
-              "min-h-[36px] flex-1 rounded-[7px] px-2 text-[14px] font-medium transition",
+              "min-h-[40px] flex-1 rounded-[7px] px-2 text-[14px] font-medium transition",
               ativo ? "bg-card text-label shadow-sm dark:bg-label-3/30" : "text-label active:opacity-60",
             )}
           >
