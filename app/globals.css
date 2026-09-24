@@ -2,49 +2,132 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Cores do sistema iOS (claro/escuro). Os componentes usam só estes tokens. */
+:root {
+  --bg: 242 242 247; /* systemGroupedBackground */
+  --card: 255 255 255; /* secondarySystemGroupedBackground */
+  --card-2: 242 242 247;
+  --label: 0 0 0;
+  --label-2: 60 60 67; /* usado com alpha .6 */
+  --label-3: 60 60 67; /* usado com alpha .3 */
+  --sep: 198 198 200;
+  --fill: 118 118 128; /* usado com alpha .12 */
+  --tint: 0 122 255;
+  --verde: 36 138 61; /* verde escurecido para texto legível no claro */
+  --vermelho: 215 0 21;
+  --laranja: 201 52 0;
+  --barra: 249 249 249;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: 0 0 0;
+    --card: 28 28 30;
+    --card-2: 44 44 46;
+    --label: 255 255 255;
+    --label-2: 235 235 245;
+    --label-3: 235 235 245;
+    --sep: 56 56 58;
+    --fill: 118 118 128;
+    --tint: 10 132 255;
+    --verde: 48 209 88;
+    --vermelho: 255 69 58;
+    --laranja: 255 159 10;
+    --barra: 22 22 24;
+    color-scheme: dark;
+  }
+}
+
 html {
-  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
 }
 
 html,
 body {
-  background: #000000;
-  color: #f5f5f7;
+  background: rgb(var(--bg));
+  color: rgb(var(--label));
   -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
+  overscroll-behavior-y: none;
 }
 
-::selection {
-  background: #f5f5f7;
-  color: #000000;
+body {
+  min-height: 100dvh;
+}
+
+/* Inputs com 16px+ evitam o zoom automático do Safari ao focar. */
+input,
+select,
+textarea {
+  font-size: 17px;
 }
 
 @layer components {
-  /* Container estreito e centralizado — todo o site respira dentro dele */
-  .wrap {
-    @apply mx-auto w-full max-w-6xl px-6 md:px-10;
-  }
-  .display {
-    @apply font-semibold tracking-tightest text-ash;
-  }
-  .muted {
-    @apply font-light text-neutral-400;
+  /* Coluna estreita: celular ocupa tudo, desktop centraliza. */
+  .coluna {
+    @apply mx-auto w-full max-w-[430px];
   }
 
-  /* Admin */
-  .label {
-    @apply mb-1.5 block text-xs font-medium uppercase tracking-wide text-neutral-500;
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
   }
-  .input {
-    @apply w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-ash placeholder:text-neutral-600 focus:border-gold/60 focus:outline-none focus:ring-1 focus:ring-gold/40 disabled:opacity-50;
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
   }
+
+  /* Lista agrupada estilo Ajustes. */
+  .grupo {
+    @apply overflow-hidden rounded-xl bg-card;
+  }
+  .grupo > * + * {
+    @apply border-t border-sep/60;
+  }
+  .grupo-titulo {
+    @apply px-4 pb-1.5 pt-5 text-[13px] uppercase tracking-wide text-label-2/60;
+  }
+
+  .campo {
+    @apply min-h-[44px] w-full bg-transparent py-2.5 text-[17px] text-label outline-none placeholder:text-label-3/30;
+  }
+  .campo-caixa {
+    @apply min-h-[44px] w-full rounded-xl bg-fill/[0.12] px-3.5 py-2.5 text-[17px] text-label outline-none placeholder:text-label-3/40 focus:ring-2 focus:ring-tint/40;
+  }
+
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl px-4 text-[17px] font-semibold transition active:opacity-60 disabled:opacity-40;
   }
-  .btn-primary {
-    @apply btn bg-ash text-black hover:bg-white;
+  .btn-primario {
+    @apply btn bg-tint text-white;
   }
-  .btn-ghost {
-    @apply btn border border-white/15 text-ash hover:bg-white/5;
+  .btn-secundario {
+    @apply btn bg-fill/[0.12] text-tint;
+  }
+  .btn-perigo {
+    @apply btn bg-fill/[0.12] text-vermelho;
+  }
+  .btn-texto {
+    @apply inline-flex min-h-[44px] min-w-[44px] items-center justify-center text-[17px] text-tint active:opacity-60 disabled:opacity-40;
+  }
+
+  .valor {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Rolagem horizontal sem barra visível (chips de categoria). */
+  .sem-barra {
+    scrollbar-width: none;
+  }
+  .sem-barra::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }
