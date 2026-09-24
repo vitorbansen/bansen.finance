@@ -8,35 +8,283 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-enum Estado {
-  NOVO
-  SEMINOVO
+// Convenções:
+// - Dinheiro é sempre Int em centavos.
+// - Datas de competência são @db.Date (sem hora) — lidas/escritas em UTC por lib/finance/dates.ts.
+
+enum TipoConta {
+  CORRENTE
+  CARTEIRA
+  INVESTIMENTO
 }
 
-model Produto {
-  id            String   @id @default(cuid())
-  modelo        String
-  armazenamento String
-  cor           String
-  estado        Estado   @default(NOVO)
-  garantia      String
-  preco         Decimal  @db.Decimal(12, 2)
-  precoPix      Decimal? @db.Decimal(12, 2)
-  bateria       Int?
-  imagem        String?
-  destaque      Boolean  @default(false)
-  disponivel    Boolean  @default(true)
-  ordem         Int      @default(0)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  @@index([estado, disponivel])
+enum TipoCategoria {
+  ENTRADA
+  SAIDA
+  AMBOS
 }
 
-model Admin {
+enum TipoLancamento {
+  ENTRADA
+  SAIDA
+  TRANSFERENCIA
+}
+
+enum StatusLancamento {
+  PAGO
+  PENDENTE
+}
+
+enum Frequencia {
+  MENSAL
+  SEMANAL
+  ANUAL
+}
+
+enum TipoMovimentacao {
+  DEPOSITO
+  RESGATE
+}
+
+model Usuario {
   id        String   @id @default(cuid())
-  usuario   String   @unique
   nome      String
+  email     String   @unique
   senha     String
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  contas        Conta[]
+  categorias    Categoria[]
+  cartoes       Cartao[]
+  lancamentos   Lancamento[]
+  recorrencias  Recorrencia[]
+  comprasParcel CompraParcelada[]
+  caixinhas     Caixinha[]
+}
+
+model Conta {
+  id           String    @id @default(cuid())
+  userId       String
+  nome         String
+  tipo         TipoConta @default(CORRENTE)
+  saldoInicial Int       @default(0)
+  cor          String    @default("#0A84FF")
+  arquivada    Boolean   @default(false)
+  ordem        Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  usuario                 Usuario                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lancamentos             Lancamento[]           @relation("LancamentoConta")
+  transferenciasRecebidas Lancamento[]           @relation("LancamentoContaDestino")
+  cartoesPagos            Cartao[]
+  recorrencias            Recorrencia[]
+  movimentacoes           MovimentacaoCaixinha[]
+
+  @@index([userId])
+}
+
+model Categoria {
+  id        String        @id @default(cuid())
+  userId    String
+  nome      String
+  icone     String        @default("circle")
+  cor       String        @default("#8E8E93")
+  tipo      TipoCategoria @default(SAIDA)
+  arquivada Boolean       @default(false)
+  createdAt DateTime      @default(now())
+
+  usuario      Usuario           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lancamentos  Lancamento[]
+  recorrencias Recorrencia[]
+  compras      CompraParcelada[]
+
+  @@unique([userId, nome])
+}
+
+model Cartao {
+  id               String   @id @default(cuid())
+  userId           String
+  nome             String
+  limite           Int
+  diaFechamento    Int
+  diaVencimento    Int
+  contaPagamentoId String
+  cor              String   @default("#820AD1")
+  arquivado        Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  usuario        Usuario           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contaPagamento Conta             @relation(fields: [contaPagamentoId], references: [id], onDelete: Cascade)
+  faturas        Fatura[]
+  lancamentos    Lancamento[]
+  recorrencias   Recorrencia[]
+  compras        CompraParcelada[]
+
+  @@index([userId])
+}
+
+/// Uma fatura por cartão e mês de vencimento. Status é derivado (ABERTA/FECHADA/PAGA).
+model Fatura {
+  id                    String    @id @default(cuid())
+  cartaoId              String
+  /// Dia 1 do mês de vencimento (competência da fatura).
+  mes                   DateTime  @db.Date
+  dataFechamento        DateTime  @db.Date
+  dataVencimento        DateTime  @db.Date
+  pagaEm                DateTime? @db.Date
+  lancamentoPagamentoId String?   @unique
+
+  cartao              Cartao       @relation(fields: [cartaoId], references: [id], onDelete: Cascade)
+  lancamentoPagamento Lancamento?  @relation("PagamentoFatura", fields: [lancamentoPagamentoId], references: [id], onDelete: SetNull)
+  itens               Lancamento[] @relation("ItensFatura")
+
+  @@unique([cartaoId, mes])
+}
+
+/// Compra parcelada no cartão: gera N lançamentos (parcelas), um em cada fatura.
+model CompraParcelada {
+  id          String   @id @default(cuid())
+  userId      String
+  cartaoId    String
+  categoriaId String?
+  descricao   String
+  valorTotal  Int
+  nParcelas   Int
+  dataCompra  DateTime @db.Date
+  createdAt   DateTime @default(now())
+
+  usuario   Usuario      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cartao    Cartao       @relation(fields: [cartaoId], references: [id], onDelete: Cascade)
+  categoria Categoria?   @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
+  parcelas  Lancamento[]
+
+  @@index([userId])
+}
+
+model Recorrencia {
+  id          String         @id @default(cuid())
+  userId      String
+  descricao   String
+  valor       Int
+  tipo        TipoLancamento
+  categoriaId String?
+  contaId     String?
+  cartaoId    String?
+  frequencia  Frequencia     @default(MENSAL)
+  /// Dia do mês (1–31) para mensal/anual; dia da semana (0=dom … 6=sáb) para semanal.
+  dia         Int
+  dataInicio  DateTime       @db.Date
+  dataFim     DateTime?      @db.Date
+  ativa       Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  usuario     Usuario              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoria   Categoria?           @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
+  conta       Conta?               @relation(fields: [contaId], references: [id], onDelete: Cascade)
+  cartao      Cartao?              @relation(fields: [cartaoId], references: [id], onDelete: Cascade)
+  lancamentos Lancamento[]
+  excecoes    RecorrenciaExcecao[]
+
+  @@index([userId, ativa])
+}
+
+/// Ocorrência excluída pelo usuário — não é gerada de novo.
+model RecorrenciaExcecao {
+  id            String   @id @default(cuid())
+  recorrenciaId String
+  data          DateTime @db.Date
+
+  recorrencia Recorrencia @relation(fields: [recorrenciaId], references: [id], onDelete: Cascade)
+
+  @@unique([recorrenciaId, data])
+}
+
+model Lancamento {
+  id                String           @id @default(cuid())
+  userId            String
+  tipo              TipoLancamento
+  descricao         String
+  valor             Int
+  data              DateTime         @db.Date
+  status            StatusLancamento @default(PAGO)
+  observacao        String?
+  categoriaId       String?
+  /// Entrada/saída em conta, ou origem da transferência.
+  contaId           String?
+  /// Destino da transferência entre contas.
+  contaDestinoId    String?
+  cartaoId          String?
+  faturaId          String?
+  recorrenciaId     String?
+  /// Data "original" da ocorrência gerada — chave de idempotência junto com recorrenciaId.
+  ocorrenciaData    DateTime?        @db.Date
+  /// Ocorrência alterada individualmente ("só esta"): não é sobrescrita por "esta e as próximas".
+  editado           Boolean          @default(false)
+  compraParceladaId String?
+  parcelaNumero     Int?
+  parcelaTotal      Int?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  usuario         Usuario               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoria       Categoria?            @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
+  conta           Conta?                @relation("LancamentoConta", fields: [contaId], references: [id], onDelete: Cascade)
+  contaDestino    Conta?                @relation("LancamentoContaDestino", fields: [contaDestinoId], references: [id], onDelete: Cascade)
+  cartao          Cartao?               @relation(fields: [cartaoId], references: [id], onDelete: Cascade)
+  fatura          Fatura?               @relation("ItensFatura", fields: [faturaId], references: [id], onDelete: Cascade)
+  recorrencia     Recorrencia?          @relation(fields: [recorrenciaId], references: [id], onDelete: SetNull)
+  compraParcelada CompraParcelada?      @relation(fields: [compraParceladaId], references: [id], onDelete: Cascade)
+  faturaPaga      Fatura?               @relation("PagamentoFatura")
+  movimentacao    MovimentacaoCaixinha?
+
+  @@unique([recorrenciaId, ocorrenciaData])
+  @@index([userId, data])
+  @@index([contaId, data])
+  @@index([contaDestinoId])
+  @@index([faturaId])
+  @@index([cartaoId])
+  @@index([compraParceladaId])
+}
+
+/// "Caixinha" / meta de dinheiro guardado. Saldo = soma das movimentações.
+model Caixinha {
+  id              String    @id @default(cuid())
+  userId          String
+  nome            String
+  valorAlvo       Int?
+  prazo           DateTime? @db.Date
+  /// Quanto pretendo guardar por mês — descontado do saldo livre.
+  planejadoMensal Int?
+  cor             String    @default("#30D158")
+  icone           String    @default("piggy-bank")
+  arquivada       Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  usuario       Usuario                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  movimentacoes MovimentacaoCaixinha[]
+
+  @@index([userId])
+}
+
+/// Depósito/resgate: sempre ligado a um Lancamento TRANSFERENCIA que move o saldo da conta.
+model MovimentacaoCaixinha {
+  id           String           @id @default(cuid())
+  caixinhaId   String
+  tipo         TipoMovimentacao
+  valor        Int
+  data         DateTime         @db.Date
+  contaId      String
+  lancamentoId String           @unique
+  createdAt    DateTime         @default(now())
+
+  caixinha   Caixinha   @relation(fields: [caixinhaId], references: [id], onDelete: Cascade)
+  conta      Conta      @relation(fields: [contaId], references: [id], onDelete: Cascade)
+  lancamento Lancamento @relation(fields: [lancamentoId], references: [id], onDelete: Cascade)
+
+  @@index([caixinhaId, data])
 }
