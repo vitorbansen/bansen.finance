@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { COOKIE_KEY, signToken, verifyToken } from "./jwt";
+import { COOKIE_KEY, opcoesCookieSessao, signToken, verifyToken } from "./jwt";
 
 export type UserSession = {
   id: string;
@@ -16,14 +16,8 @@ export class NaoAutorizado extends Error {
 
 export async function createSession(payload: UserSession) {
   const token = await signToken({ ...payload });
-  cookies().set(COOKIE_KEY, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    // App fica na Tela de Início do iPhone: sessão longa evita login frequente.
-    maxAge: 60 * 60 * 24 * 30,
-  });
+  // Sessão longa e renovada a cada uso (ver middleware): o app na Tela de Início fica logado.
+  cookies().set(COOKIE_KEY, token, opcoesCookieSessao);
 }
 
 export async function destroySession() {
