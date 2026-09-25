@@ -1,10 +1,12 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, Wallet } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { api } from "@/lib/cliente";
+import logo from "@/public/logo.jpg";
 
 /** Login e cadastro compartilham o mesmo layout. */
 export function FormAuth({ modo }: { modo: "login" | "cadastro" }) {
@@ -38,9 +40,15 @@ export function FormAuth({ modo }: { modo: "login" | "cadastro" }) {
   return (
     <main className="pt-safe pb-safe coluna flex min-h-dvh flex-col justify-center px-6">
       <div className="mb-8 flex flex-col items-center text-center">
-        <span className="mb-4 flex h-16 w-16 items-center justify-center rounded-[18px] bg-gradient-to-br from-[#34C759] to-[#248A3D] text-white shadow-lg">
-          <Wallet size={34} />
-        </span>
+        <Image
+          src={logo}
+          alt="Logo"
+          width={112}
+          height={112}
+          priority
+          placeholder="blur"
+          className="mb-4 h-28 w-28 rounded-full object-cover shadow-lg"
+        />
         <h1 className="text-[28px] font-bold tracking-tight">{cadastro ? "Criar conta" : "Finanças"}</h1>
         <p className="mt-1 text-[15px] text-label-2/60">
           {cadastro ? "Leva menos de um minuto." : "Quanto entrou, quanto saiu e quanto sobra."}

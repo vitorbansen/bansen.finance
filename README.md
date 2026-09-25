@@ -67,6 +67,7 @@ prisma/              # schema, migrations, seed
 
 1. Variáveis do `.env` em *Environment Variables*.
    Na `DATABASE_URL` use `connection_limit=5&pool_timeout=20` (a tela Início faz várias consultas em paralelo;
-   com `connection_limit=1` elas enfileiram e estouram o tempo).
+   com `connection_limit=1` elas enfileiram e estouram o tempo). **Não** use `pgbouncer=true`: o pooler do
+   Neon já aceita prepared statements, e essa flag faz cada consulta levar várias idas e voltas (~5× mais lenta).
 2. Build padrão (`npm run build`) já roda `prisma generate`.
 3. `npx prisma migrate deploy` apontando para o banco de produção.

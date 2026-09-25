@@ -1,4 +1,4 @@
-import type { Lancamento } from "@prisma/client";
+import type { Lancamento, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   addDias,
@@ -58,7 +58,16 @@ export async function montarResumo(userId: string, mes: MesISO) {
   const fimProximo = ultimoDia(proximo);
   const limitePendentes = max(fimProximo, addDias(hoje, 7));
 
-  const [contas, agregados, caixinhas, pendentes, doPeriodo, gerados, faturasDb, recorrencias, cartoes, categorias] =
+  const filtroFaturas = {
+    cartao: { userId },
+    OR: [
+      { pagaEm: null, dataVencimento: { lte: toDate(fimProximo) } },
+      { mes: { in: [toDate(primeiroDia(mes)), toDate(primeiroDia(proximo))] } },
+    ],
+  } satisfies Prisma.FaturaWhereInput;
+
+  // Tudo em paralelo: com o banco remoto, cada ida e volta conta.
+  const [contas, agregados, caixinhas, pendentes, doPeriodo, gerados, faturasDb, totaisFaturas, recorrencias, cartoes, categorias] =
     await Promise.all([
       prisma.conta.findMany({ where: { userId } }),
       lancamentosAgregadosPorConta(prisma, userId),
@@ -82,16 +91,8 @@ export async function montarResumo(userId: string, mes: MesISO) {
           ocorrenciaData: { gte: toDate(primeiroDia(mes)), lte: toDate(fimProximo) },
         },
       }),
-      prisma.fatura.findMany({
-        where: {
-          cartao: { userId },
-          OR: [
-            { pagaEm: null, dataVencimento: { lte: toDate(fimProximo) } },
-            { mes: { in: [toDate(primeiroDia(mes)), toDate(primeiroDia(proximo))] } },
-          ],
-        },
-        include: { cartao: { select: { nome: true } } },
-      }),
+      prisma.fatura.findMany({ where: filtroFaturas, include: { cartao: { select: { nome: true } } } }),
+      prisma.lancamento.groupBy({ by: ["faturaId"], where: { fatura: filtroFaturas }, _sum: { valor: true } }),
       prisma.recorrencia.findMany({
         where: { userId, ativa: true },
         include: { excecoes: { where: { data: { gte: toDate(primeiroDia(mes)), lte: toDate(fimProximo) } } } },
@@ -100,16 +101,7 @@ export async function montarResumo(userId: string, mes: MesISO) {
       prisma.categoria.findMany({ where: { userId } }),
     ]);
 
-  // Totais das faturas.
-  const totais = new Map(
-    (
-      await prisma.lancamento.groupBy({
-        by: ["faturaId"],
-        where: { faturaId: { in: faturasDb.map((f) => f.id) } },
-        _sum: { valor: true },
-      })
-    ).map((g) => [g.faturaId!, g._sum.valor ?? 0]),
-  );
+  const totais = new Map(totaisFaturas.map((g) => [g.faturaId!, g._sum.valor ?? 0]));
   const faturas: FaturaR[] = faturasDb.map((f) => {
     const p = periodoDaFatura(f);
     return {

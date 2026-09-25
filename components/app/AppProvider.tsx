@@ -20,6 +20,9 @@ type Ctx = {
   atualizar: () => void;
   alternarPago: (l: LancamentoDTO) => Promise<void>;
   confirmarExclusao: (l: LancamentoDTO, depois?: () => void) => void;
+  /** Troca de mês em andamento: o conteúdo fica esmaecido até os dados novos chegarem. */
+  navegando: boolean;
+  setNavegando: (v: boolean) => void;
 };
 
 const AppCtx = createContext<Ctx | null>(null);
@@ -35,6 +38,7 @@ export function AppProvider({ cadastros, children }: { cadastros: Cadastros; chi
   const [sheet, setSheet] = useState<{ aberto: boolean; lancamento?: LancamentoDTO }>({ aberto: false });
   const [pergunta, setPergunta] = useState<Pergunta | null>(null);
   const [aviso, setAviso] = useState<{ id: number; mensagem: string; erro?: boolean } | null>(null);
+  const [navegando, setNavegando] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>();
 
   const avisar = useCallback((mensagem: string, erro?: boolean) => {
@@ -118,8 +122,10 @@ export function AppProvider({ cadastros, children }: { cadastros: Cadastros; chi
       atualizar,
       alternarPago,
       confirmarExclusao,
+      navegando,
+      setNavegando,
     }),
-    [cadastros, avisar, atualizar, alternarPago, confirmarExclusao],
+    [cadastros, avisar, atualizar, alternarPago, confirmarExclusao, navegando],
   );
 
   return (
